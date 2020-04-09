@@ -4,12 +4,14 @@ from drawnow import *
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from datetime import datetime
 
 sender ='theodoulos.christou@gmail.com'
 password ='lgtelevision1'
 receiver = 'theodoulos.christou@gmail.com'
-subject_of_email ='Plants Of Daniel'
+subject_of_email ='Watering System Plant'
 message_of_email ='Your Watering System Plant is on. You can check the data visualisation of your plants in python.'
+
 
 msg = MIMEMultipart()
 msg['From'] = sender
@@ -42,7 +44,9 @@ def makeFig():
     plt.ylim(0, 100)
     plt.xlim(0, 100)
     # plt.title('Plotting Live Data For The Watering System Plant')
-    plt.title('Ζωντανη Μεταδοση Δεδομενων Ποτιστικου Συστηματος')
+    dt = datetime.now()
+    dateAndTime = dt.strftime("%d/%m/%Y %H:%M:%S")
+    plt.title('Ζωντανη Μεταδοση Δεδομενων Ποτιστικου Συστηματος \n Date and Time ' + dateAndTime)
     plt.grid(True)
     plt.ylabel('Y-Axis')
     plt.xlabel('X-Axis')
