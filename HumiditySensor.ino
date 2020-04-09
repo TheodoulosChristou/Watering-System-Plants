@@ -1,3 +1,5 @@
+
+
 // Example testing sketch for various DHT humidity/temperature sensors
 // Written by ladyada, public domain
 
@@ -9,6 +11,10 @@
 #define DHTPIN 2
 #include <SPI.h>
 #include <RF24.h>
+#include <Wire.h>
+#include <virtuabotixRTC.h>
+
+
 
 // Digital pin connected to the DHT sensor
 // Feather HUZZAH ESP8266 note: use pins 3, 4, 5, 12, 13 or 14 --
@@ -51,11 +57,14 @@ typedef struct packet_t {
   double water_value;
   int sensorValue;
 } Packet;
+virtuabotixRTC myRtc(A1,A2,A3);
+String keyword = "Aloma_23u!";
 
 void setup() {
   Serial.begin(9600);
   pinMode(soilMoisturePin, INPUT);
-
+  password();
+  
   if (radio.begin()) {
     Serial.println("NRF24 initialised");
   }
@@ -71,23 +80,26 @@ void setup() {
   }
 
   radio.stopListening();
+  
   pinMode(water_pump, OUTPUT);
   Serial.println("The system will begin in....");
   countDownSystem(5);
   Serial.println(F("Demo Testing!"));
   dht.begin();
-
+  
+  //seconds,minutes,hours,day of the week, day of the month,month,year
+  myRtc.setDS1302Time(15, 53, 1, 3, 1, 4, 2020);
 }
 
 void loop() {
   // Wait a few seconds between measurements.
+  
   delay(1000);
-  //  digitalWrite(led1,HIGH);
 
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
 
-  radio.stopListening();
+   radio.stopListening();
 
    Packet packet;
    packet.h = humidity();
@@ -98,22 +110,17 @@ void loop() {
    packet.water_value = water_level_sensor_value();
    packet.sensorValue = map(analogRead(soilMoisturePin),0,1023,0,100);
 
-//  double h = humidity();
-//  double c = temperatureCelsius();
-//  double f = temperatureFarheneit();
-//  double hic = heatIndexCels();
-//  double hif = heatIndexFar();
-//  double water_value = water_level_sensor_value();
-//  int sensorValue = map(analogRead(soilMoisturePin),0,1023,0,100);
-
   // Check if any reads failed and exit early (to try again).
 
     if (isnan(packet.h) || isnan(packet.c) || isnan(packet.f)){
       Serial.println(F("Failed to read from DHT sensor!"));
       return;
     }
-  if ((packet.c < 27)) {
+    
+  if ((packet.c < 40) || (packet.h < 100)){
+     digitalWrite(water_pump, HIGH);
   } else {
+    digitalWrite(water_pump, LOW);
     Serial.println("Serial Monitor reached the highest temperature");
   }
   if ((packet.sensorValue < 200)) {
@@ -124,12 +131,11 @@ void loop() {
   }
 
   if (packet.water_value <= 100.0) {
+    digitalWrite(water_pump, HIGH);
   } else {
+    digitalWrite(water_pump, LOW);
     Serial.println("Water Level reached the highest value");
   }
-
-
- 
 
   radio.write(&packet, sizeof(Packet)); 
   Serial.print(F("Humidity: "));
@@ -152,6 +158,21 @@ void loop() {
   Serial.print(packet.water_value);
   Serial.print(" % ");
   Serial.println(" ");
+
+   myRtc.updateTime();
+   Serial.print("Current Date / Time: ");
+   Serial.print(myRtc.dayofmonth); //You can switch between day and month if you're using American system
+   Serial.print("/");
+   Serial.print(myRtc.month);
+   Serial.print("/");
+   Serial.print(myRtc.year);
+   Serial.print(" ");
+   Serial.print(myRtc.hours);
+   Serial.print(":");
+   Serial.print(myRtc.minutes);
+   Serial.print(":");
+   Serial.print(myRtc.seconds);
+   Serial.println(" ");
 }
 
 
@@ -193,4 +214,21 @@ double heatIndexCels() {
 double water_level_sensor_value() {
   double v = analogRead(water_level_sensor) / 100.0;
   return v;
+}
+
+
+void password(){
+  Serial.println("Enter your password: ");
+  while(Serial.available() == 0){
+  }
+  String text;
+  text = Serial.readString();
+  text.trim();
+  int attempt = 0;
+  if(text.equals(keyword)){
+    Serial.println("Your password is correct");
+  }else{
+    Serial.println("Your Password is incorrect Try again");
+    password();
+  }
 }
